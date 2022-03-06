@@ -106,6 +106,9 @@ public class RobotContainer {
 
   private int intakeStatus = 0;
 
+  private boolean going = false; 
+
+  private double rightArc, rotMag; 
   
 
   // private int goal = 0;
@@ -118,10 +121,23 @@ public class RobotContainer {
     // Configure the button bindings
     configureButtonBindings();
 
+    if(Robot.oi.LeftBumper(1)){m_intake.set(0.8); going = true;}
+    else if(Robot.oi.LeftTrigger(1)> .7){ m_intake.set(-0.5); going = false;}
+    else if(!going){m_intake.set(0);}
+
+
+    if(Robot.oi.RightMag(1) > .7){
+      rightArc = -Robot.oi.RightArc(1);
+      try{ m_drive.turning.setYaw(rightArc+m_drive.getYaw().getDegrees());}catch(Exception e){}
+      rotMag = m_drive.turning.getPIDOutput();
+    }else{
+      rotMag = 0; 
+    }
     m_drive.setDefaultCommand(new RunCommand(() -> {
-        m_drive.cartesianDriveAbsolute(modifyAxis(-m_controller.getLeftY()*m_controller.getLeftY()*m_controller.getLeftY()), 
+        m_drive.cartesianDriveAbsolute(
+          modifyAxis(-m_controller.getLeftY()*m_controller.getLeftY()*m_controller.getLeftY()), 
           modifyAxis(-m_controller.getLeftX()*m_controller.getLeftX()*m_controller.getLeftX()),
-          modifyAxis(-m_controller.getRightX()));
+          rotMag);
           
         m_limelight.setLED(false);
       },
@@ -148,8 +164,15 @@ public class RobotContainer {
    * edu.wpi.first.wpilibj2.command.button.JoystickButton}.
    */
   private void configureButtonBindings() {
-  
 
+    
+    JoystickButton resetYawButton = new JoystickButton(m_controller, XboxController.Button.kStart.value);
+
+    resetYawButton.whenPressed(
+      new InstantCommand(()->{m_drive.resetYaw();})
+    );
+
+    /*
     //Intake in
     JoystickButton intakeIn = new JoystickButton(m_controller, XboxController.Button.kLeftBumper.value);
     // intakeIn.whenPressed(new InstantCommand(()->m_intake.set(0.5), m_intake));
@@ -199,7 +222,7 @@ public class RobotContainer {
       m_intake.set(0);
       intakeStatus = 0;
     }, m_intake));
-    
+    */
     
     
 

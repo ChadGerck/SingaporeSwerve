@@ -35,7 +35,7 @@ public class RotateCommand extends CommandBase {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    m_swerve.turning.setYaw(angle);
+    m_swerve.turning.setYaw(angle+m_swerve.getYaw().getDegrees());
     m_swerve.rotate(m_swerve.turning.getPIDOutput());
     System.out.println(m_swerve.getYaw().minus(start).getDegrees());
   }
@@ -49,8 +49,7 @@ public class RotateCommand extends CommandBase {
   // Returns true when the command should end.
   @Override
   public boolean isFinished() {
-    return (m_swerve.getYaw().getDegrees() < angle + 2.5
-    && (m_swerve.getYaw().getDegrees() > angle - 2.5));
+    return Math.abs(-angle-m_swerve.getYaw().getDegrees()) > 5;
   }
 }
 

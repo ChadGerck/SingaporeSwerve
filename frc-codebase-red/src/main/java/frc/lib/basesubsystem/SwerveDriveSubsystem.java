@@ -22,6 +22,7 @@ import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.math.trajectory.TrajectoryConfig;
 import edu.wpi.first.math.trajectory.TrajectoryGenerator;
@@ -32,6 +33,8 @@ import frc.lib.gyro.ODN_Gyro;
 import frc.lib.ODN_HolonomicDrivebase;
 import frc.robot.TurnModule;
 import frc.robot.Constants.AutoConstants;
+import frc.robot.Robot;
+import frc.robot.RobotContainer; 
 
 public class SwerveDriveSubsystem extends ODN_HolonomicDrivebase {
 
@@ -110,6 +113,8 @@ public class SwerveDriveSubsystem extends ODN_HolonomicDrivebase {
 	private final SwerveModule m_backRightModule;
 
 	public TurnModule turning; 
+	public double rotMag, rightArc; 
+	public boolean going; 
 
 	public SwerveDriveSubsystem(Constants constants) {
 		super(constants.gyro);
@@ -202,9 +207,18 @@ public class SwerveDriveSubsystem extends ODN_HolonomicDrivebase {
 
 	@Override
 	public void cartesianDriveAbsolute(double xSpeed, double ySpeed, double rotate) {
+		SmartDashboard.putNumber("rightArc", rightArc);
+		SmartDashboard.putNumber("Yaw", getYaw().getDegrees());
+		if(Robot.oi.RightMag(1) > .7){
+			rightArc = -Robot.oi.RightArc(1);
+			try{ turning.setYaw(rightArc+getYaw().getDegrees());}catch(Exception e){}
+			rotMag = turning.getPIDOutput();
+		  }else{
+			rotMag = 0; 
+		  }
 
 		ChassisSpeeds m_chassisSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed * MAX_VELOCITY_METERS_PER_SECOND,
-				ySpeed * MAX_VELOCITY_METERS_PER_SECOND, rotate * MAX_ANGULAR_VELOCITY_RADIANS_PER_SECOND,
+				ySpeed * MAX_VELOCITY_METERS_PER_SECOND, rotMag * MAX_ANGULAR_VELOCITY_RADIANS_PER_SECOND,
 				getYaw());
 		SwerveModuleState[] states = m_kinematics.toSwerveModuleStates(m_chassisSpeeds);
 		setModuleStates(states);
@@ -223,6 +237,12 @@ public class SwerveDriveSubsystem extends ODN_HolonomicDrivebase {
 	public void polarDrive(double speed, Rotation2d direction, double rotate) {
 		cartesianDriveAbsolute(speed * -direction.getSin(), speed * direction.getCos(),
 				rotate);
+	}
+
+	public void setIntake(){
+		if(Robot.oi.LeftBumper(1)){RobotContainer.m_intake.set(0.8); going = true;}
+		else if(Robot.oi.LeftTrigger(1)> .7){ RobotContainer.m_intake.set(-0.5); going = false;}
+		else if(!going){RobotContainer.m_intake.set(0);}
 	}
 
 	@Override

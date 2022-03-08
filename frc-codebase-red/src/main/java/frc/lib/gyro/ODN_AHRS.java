@@ -3,11 +3,12 @@ package frc.lib.gyro;
 import com.kauailabs.navx.frc.AHRS;
 
 import edu.wpi.first.wpilibj.SPI;
+import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.math.geometry.Rotation2d;
 
 public class ODN_AHRS implements ODN_Gyro {
 
-    private final AHRS m_navx = new AHRS(SPI.Port.kMXP, (byte) 200);
+    private final AHRS m_navx = new AHRS(I2C.Port.kMXP);
 
     @Override
     public Rotation2d getYaw() {

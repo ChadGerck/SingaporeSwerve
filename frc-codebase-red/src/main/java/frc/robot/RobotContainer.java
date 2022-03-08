@@ -5,6 +5,7 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
@@ -49,7 +50,7 @@ public class RobotContainer {
 
 
   //Intake and Indexer
-  private MotorControllerSubsystem m_intake = new MotorControllerSubsystem(Constants.intakeConstants);
+  public static MotorControllerSubsystem m_intake = new MotorControllerSubsystem(Constants.intakeConstants);
 
   //Shooter
   private MotorControllerSubsystem m_shooterTop = new MotorControllerSubsystem(Constants.shooterTopConstants);
@@ -73,10 +74,37 @@ public class RobotContainer {
 
   // Robot commands go here:
   // This command runs on autonomous
+  private Command m_autoCommand2 = new SequentialCommandGroup(
+    new InstantCommand(()->m_intake.set(0.8), m_intake),
+    new DriveCommand(m_drive, 90, 1), //1.5
+    new Wait(.2),
+    new InstantCommand(()->m_intake.set(-0.8), m_intake),
+    new Wait(.1),
+    new InstantCommand(()->m_intake.set(0), m_intake),
+    new RotateCommand(m_drive, 180),
+    
+    new DriveCommand(m_drive, 90, .7),
+    new Wait(.1),
+    new ShooterCommand(m_shooterTop, m_shooterBottom, ShootCommand.shoot(25, 107.95, 21, 30, 2*60/(1/3 *2 *Math.PI)), true),
+    new ParallelCommandGroup(new ShooterCommand(m_shooterTop, m_shooterBottom, ShootCommand.shoot(25, 107.95, 21, 30, 2*60/(1/3 *2 *Math.PI)), true), 
+    new InstantCommand(()->m_intake.set(0.8), m_intake)),
+    new Wait(3),
+    new InstantCommand(()->m_intake.set(0), m_intake),
+    new DriveCommand(m_drive, -90, .5) //1.6ft
+   
+  );
+
+
   private Command m_autoCommand = new SequentialCommandGroup(
-    //new ShootCommand(m_shooter, m_indexer), 
-    new DriveCommand(m_drive, -65, 86),
-    new RotateCommand(m_drive, -22.5),
+    //new ShootCommand(m_shooter, m_indexer),
+    new DriveCommand(m_drive, -90, .8), //4ft
+    new ShooterCommand(m_shooterTop, m_shooterBottom, ShootCommand.shoot(25, 107.95, 21, 30, 2*60/(1/3 *2 *Math.PI)), true),
+    new ParallelCommandGroup(new ShooterCommand(m_shooterTop, m_shooterBottom, ShootCommand.shoot(25, 107.95, 21, 30, 2*60/(1/3 *2 *Math.PI)), true), 
+    new InstantCommand(()->m_intake.set(0.8), m_intake)),
+    new Wait(5),
+    new InstantCommand(()->m_intake.set(0), m_intake),
+    new DriveCommand(m_drive, -90, .5) //1.6ft
+    /*new RotateCommand(m_drive, -22.5),
     new InstantCommand(()->m_intake.set(0.5), m_intake), 
     new DriveCommand(m_drive, 101, 50),
     new InstantCommand(()->m_intake.set(-0.1), m_intake), 
@@ -94,7 +122,7 @@ public class RobotContainer {
       m_shooterTop.set(0);
     }, m_intake, m_shooterTop, m_shooterBottom),
     new DriveCommand(m_drive, -65, -25)
-
+*/
 
   );
   
@@ -103,12 +131,6 @@ public class RobotContainer {
   private int topBall = 0;
   
   private int bottomBall = 0;
-
-  private int intakeStatus = 0;
-
-  private boolean going = false; 
-
-  private double rightArc, rotMag; 
   
 
   // private int goal = 0;
@@ -120,28 +142,18 @@ public class RobotContainer {
     
     // Configure the button bindings
     configureButtonBindings();
-
-    if(Robot.oi.LeftBumper(1)){m_intake.set(0.8); going = true;}
-    else if(Robot.oi.LeftTrigger(1)> .7){ m_intake.set(-0.5); going = false;}
-    else if(!going){m_intake.set(0);}
-
-
-    if(Robot.oi.RightMag(1) > .7){
-      rightArc = -Robot.oi.RightArc(1);
-      try{ m_drive.turning.setYaw(rightArc+m_drive.getYaw().getDegrees());}catch(Exception e){}
-      rotMag = m_drive.turning.getPIDOutput();
-    }else{
-      rotMag = 0; 
-    }
+    
     m_drive.setDefaultCommand(new RunCommand(() -> {
         m_drive.cartesianDriveAbsolute(
           modifyAxis(-m_controller.getLeftY()*m_controller.getLeftY()*m_controller.getLeftY()), 
           modifyAxis(-m_controller.getLeftX()*m_controller.getLeftX()*m_controller.getLeftX()),
-          rotMag);
+          m_controller.getRightX());
           
         m_limelight.setLED(false);
+        m_drive.setIntake();
       },
       m_drive));
+
 
 
     //robot enabled (0/1), speed (number gets rounded to one decimal place), first button status (0/1), second button status (0/1), climb angle (0-30), extention length (0-1), intake status (0/1) 
@@ -366,7 +378,7 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
-    return null;
+    return m_autoCommand;
   }
 
   private static double deadband(double value, double deadband) {
